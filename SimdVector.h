@@ -132,64 +132,8 @@ SIMD_ALIGNED_STRUCT(16) Xmm
 // Convinent for Static Initialization
 //---------------------------------------------------------------------
 SIMD_ALIGNED_STRUCT(16) XmmU32 { union { uint32_t u[4]; Xmm x; }; };
-SIMD_ALIGNED_STRUCT(16) XmmI32 { union { int32_t u[4]; Xmm x; }; };
-SIMD_ALIGNED_STRUCT(16) XmmF32 { union { float u[4]; Xmm x; }; };
-
-
-//---------------------------------------------------------------------
-// Const Table
-//---------------------------------------------------------------------
-#ifndef CONST_WEEK
-#define CONST_WEEK extern const __declspec(selectany)
-#endif
-
-namespace Const {
-	CONST_WEEK XmmI32 AbsMask               = { { { 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF } } };
-
-	CONST_WEEK XmmF32 FixUnsigned           = { { { 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f } } };
-	CONST_WEEK XmmF32 MaxInt                = { { { 65536.0f*32768.0f - 128.0f, 65536.0f*32768.0f - 128.0f, 65536.0f*32768.0f - 128.0f, 65536.0f*32768.0f - 128.0f } } };
-	CONST_WEEK XmmF32 MaxUInt               = { { { 65536.0f*65536.0f - 256.0f, 65536.0f*65536.0f - 256.0f, 65536.0f*65536.0f - 256.0f, 65536.0f*65536.0f - 256.0f } } };
-	CONST_WEEK XmmF32 UnsignedFix           = { { { 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f } } };
-};
-
-
-//---------------------------------------------------------------------
-// Conversion
-//---------------------------------------------------------------------
-
-inline Xmm XmmConvertIntToFloat(const Xmm& x) {
-#if SIMD_HAS_NONE
-	Xmm y;
-	y.f[0] = static_cast<float>(x.i[0]);
-	y.f[1] = static_cast<float>(x.i[1]);
-	y.f[2] = static_cast<float>(x.i[2]);
-	y.f[3] = static_cast<float>(x.i[3]);
-	return y;
-#elif SIMD_HAS_SSE2
-	Xmm y;
-	y.r = _mm_cvtepi32_ps(_mm_castps_si128(x.r));
-	return y;
-#endif
-}
-
-inline Xmm XmmConvertFloatToInt(const Xmm& x) {
-#if SIMD_HAS_NONE
-	Xmm y;
-	y.i[0] = static_cast<int32_t>(x.f[0]);
-	y.i[1] = static_cast<int32_t>(x.f[1]);
-	y.i[2] = static_cast<int32_t>(x.f[2]);
-	y.i[3] = static_cast<int32_t>(x.f[3]);
-	return y;
-#elif SIMD_HAS_SSE2
-	__m128 vOverflow = _mm_cmpgt_ps(x.r, Const::MaxInt.x.r);
-	__m128i vResulti = _mm_cvttps_epi32(x.r);
-	__m128 vResult = _mm_and_ps(vOverflow, Const::AbsMask.x.r);
-	vOverflow = _mm_andnot_ps(vOverflow, _mm_castsi128_ps(vResulti));
-	Xmm y;
-	y.r = _mm_or_ps(vOverflow, vResult);
-	return y;
-#endif
-}
+SIMD_ALIGNED_STRUCT(16) XmmI32 { union { int32_t i[4]; Xmm x; }; };
+SIMD_ALIGNED_STRUCT(16) XmmF32 { union { float f[4]; Xmm x; }; };
 
 
 //---------------------------------------------------------------------
@@ -323,6 +267,7 @@ inline void XmmStoreM4(void *ptr, const Xmm &s) noexcept {
 	dest[1] = s.u[1];
 	dest[2] = s.u[2];
 	dest[3] = s.u[3];
+	// printf("debug: %f %f %f %f\n", s.f[0], s.f[1], s.f[2], s.f[3]);
 #elif SIMD_HAS_SSE2
 	_mm_storeu_si128(reinterpret_cast<__m128i*>(ptr), _mm_castps_si128(s.r));
 #endif
@@ -421,6 +366,120 @@ inline void XmmStoreFloat4(float *dest, const Xmm& s) { XmmStoreM4(dest, s); }
 inline void XmmStoreInt4A(uint32_t *dest, const Xmm& s) { XmmStoreA4(dest, s); }
 inline void XmmStoreFloat4A(float *dest, const Xmm& s) { XmmStoreA4(dest, s); }
 
+
+//---------------------------------------------------------------------
+// Const Table
+//---------------------------------------------------------------------
+#ifndef CONST_WEEK
+#define CONST_WEEK extern const __declspec(selectany)
+#endif
+
+namespace Const {
+	CONST_WEEK XmmF32 FixUnsigned           = { { { 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f } } };
+	CONST_WEEK XmmF32 MaxInt                = { { { 65536.0f*32768.0f - 128.0f, 65536.0f*32768.0f - 128.0f, 65536.0f*32768.0f - 128.0f, 65536.0f*32768.0f - 128.0f } } };
+	CONST_WEEK XmmF32 MaxUInt               = { { { 65536.0f*65536.0f - 256.0f, 65536.0f*65536.0f - 256.0f, 65536.0f*65536.0f - 256.0f, 65536.0f*65536.0f - 256.0f } } };
+	CONST_WEEK XmmF32 UnsignedFix           = { { { 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f } } };
+	CONST_WEEK XmmF32 One                   = { { { 1.0f, 1.0f, 1.0f, 1.0f } } };
+	CONST_WEEK XmmF32 One3                  = { { { 1.0f, 1.0f, 1.0f, 0.0f } } };
+	CONST_WEEK XmmF32 Zero                  = { { { 0.0f, 0.0f, 0.0f, 0.0f } } };
+
+	CONST_WEEK XmmU32 NegativeZero          = { { { 0x80000000, 0x80000000, 0x80000000, 0x80000000 } } };
+	CONST_WEEK XmmU32 Negate3               = { { { 0x80000000, 0x80000000, 0x80000000, 0x00000000 } } };
+	CONST_WEEK XmmU32 MaskXY                = { { { 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000 } } };
+	CONST_WEEK XmmU32 Mask3                 = { { { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000 } } };
+	CONST_WEEK XmmU32 MaskX                 = { { { 0xFFFFFFFF, 0x00000000, 0x00000000, 0x00000000 } } };
+	CONST_WEEK XmmU32 MaskY                 = { { { 0x00000000, 0xFFFFFFFF, 0x00000000, 0x00000000 } } };
+	CONST_WEEK XmmU32 MaskZ                 = { { { 0x00000000, 0x00000000, 0xFFFFFFFF, 0x00000000 } } };
+	CONST_WEEK XmmU32 MaskW                 = { { { 0x00000000, 0x00000000, 0x00000000, 0xFFFFFFFF } } };
+
+	CONST_WEEK XmmI32 AbsMask               = { { { 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF } } };
+};
+
+
+//---------------------------------------------------------------------
+// Conversion
+//---------------------------------------------------------------------
+
+inline Xmm XmmConvertIntToFloat(const Xmm& x) {
+#if SIMD_HAS_NONE
+	Xmm y;
+	y.f[0] = static_cast<float>(x.i[0]);
+	y.f[1] = static_cast<float>(x.i[1]);
+	y.f[2] = static_cast<float>(x.i[2]);
+	y.f[3] = static_cast<float>(x.i[3]);
+	return y;
+#elif SIMD_HAS_SSE2
+	Xmm y;
+	y.r = _mm_cvtepi32_ps(_mm_castps_si128(x.r));
+	return y;
+#endif
+}
+
+inline Xmm XmmConvertFloatToInt(const Xmm& x) {
+#if SIMD_HAS_NONE
+	Xmm y;
+	y.i[0] = static_cast<int32_t>(x.f[0]);
+	y.i[1] = static_cast<int32_t>(x.f[1]);
+	y.i[2] = static_cast<int32_t>(x.f[2]);
+	y.i[3] = static_cast<int32_t>(x.f[3]);
+	return y;
+#elif SIMD_HAS_SSE2
+	__m128 vOverflow = _mm_cmpgt_ps(x.r, Const::MaxInt.x.r);
+	__m128i vResulti = _mm_cvttps_epi32(x.r);
+	__m128 vResult = _mm_and_ps(vOverflow, Const::AbsMask.x.r);
+	vOverflow = _mm_andnot_ps(vOverflow, _mm_castsi128_ps(vResulti));
+	Xmm y;
+	y.r = _mm_or_ps(vOverflow, vResult);
+	return y;
+#endif
+}
+
+inline Xmm XmmConvertUIntToFloat(const Xmm& x) {
+#if SIMD_HAS_NONE
+	Xmm y;
+	y.f[0] = static_cast<float>(x.u[0]);
+	y.f[1] = static_cast<float>(x.u[1]);
+	y.f[2] = static_cast<float>(x.u[2]);
+	y.f[3] = static_cast<float>(x.u[3]);
+	return y;
+#elif SIMD_HAS_SSE2
+	__m128i v = _mm_castps_si128(x.r);
+	__m128 vMask = _mm_and_ps(_mm_castsi128_ps(v), Const::NegativeZero.x.r);
+	__m128 vResult = _mm_xor_ps(_mm_castsi128_ps(v), vMask);
+	vResult = _mm_cvtepi32_ps(_mm_castps_si128(vResult));
+	__m128i iMask = _mm_srai_epi32(_mm_castps_si128(vMask), 31);
+	vMask = _mm_and_ps(_mm_castsi128_ps(iMask), Const::FixUnsigned.x.r);
+	vResult = _mm_and_ps(vResult, vMask);
+	// vResult = Const::NegativeZero.x.r;
+	Xmm y;
+	y.r = vResult;
+	return y;
+#endif
+}
+
+inline Xmm XmmConvertFloatToUInt(const Xmm& x) {
+#if SIMD_HAS_NONE
+	Xmm y;
+	y.u[0] = static_cast<uint32_t>(x.f[0]);
+	y.u[1] = static_cast<uint32_t>(x.f[1]);
+	y.u[2] = static_cast<uint32_t>(x.f[2]);
+	y.u[3] = static_cast<uint32_t>(x.f[3]);
+	return y;
+#elif SIMD_HAS_SSE2
+	__m128 vResult = _mm_max_ps(x.r, Const::Zero.x.r);
+	__m128 vOverflow = _mm_cmpgt_ps(vResult, Const::MaxUInt.x.r);
+	__m128 vValue = Const::UnsignedFix.x.r;
+	__m128 vMask = _mm_cmpge_ps(vResult, vValue);
+	vValue = _mm_and_ps(vValue, vMask);
+	vResult = _mm_sub_ps(vResult, vValue);
+	__m128i vResulti = _mm_cvttps_epi32(vResult);
+	vMask = _mm_and_ps(vMask, Const::NegativeZero.x.r);
+	vResult = _mm_xor_ps(_mm_castsi128_ps(vResulti), vMask);
+	Xmm y;
+	y.r = _mm_or_ps(vResult, vOverflow);
+	return y;
+#endif
+}
 
 
 //---------------------------------------------------------------------
