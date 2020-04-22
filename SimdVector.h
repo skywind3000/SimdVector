@@ -115,7 +115,7 @@ NAMESPACE_BEGIN(SIMD);
 //---------------------------------------------------------------------
 // vector of 4 elements
 //---------------------------------------------------------------------
-SIMD_ALIGNED_STRUCT(16) Vec4
+SIMD_ALIGNED_STRUCT(16) Xmm
 {
 	union {
 		float f[4];
@@ -129,34 +129,42 @@ SIMD_ALIGNED_STRUCT(16) Vec4
 
 
 //---------------------------------------------------------------------
+// Consts
+//---------------------------------------------------------------------
+SIMD_ALIGNED_STRUCT(16) XmmU { union { uint32_t u[4]; Xmm v; }; };
+SIMD_ALIGNED_STRUCT(16) XmmI { union { int32_t u[4]; Xmm v; }; };
+SIMD_ALIGNED_STRUCT(16) XmmF { union { int32_t u[4]; Xmm v; }; };
+
+
+//---------------------------------------------------------------------
 // Conversion
 //---------------------------------------------------------------------
 
-inline Vec4 Vec4ConvertIntToFloat(const Vec4& x) {
+inline Xmm XmmConvertIntToFloat(const Xmm& x) {
 #if SIMD_HAS_NONE
-	Vec4 y;
+	Xmm y;
 	y.f[0] = static_cast<float>(x.i[0]);
 	y.f[1] = static_cast<float>(x.i[1]);
 	y.f[2] = static_cast<float>(x.i[2]);
 	y.f[3] = static_cast<float>(x.i[3]);
 	return y;
 #elif SIMD_HAS_SSE2
-	Vec4 y;
+	Xmm y;
 	y.r = _mm_cvtepi32_ps(_mm_castps_si128(x.r));
 	return y;
 #endif
 }
 
-inline Vec4 Vec4ConvertFloatToInt(const Vec4& x) {
+inline Xmm XmmConvertFloatToInt(const Xmm& x) {
 #if SIMD_HAS_NONE
-	Vec4 y;
+	Xmm y;
 	y.i[0] = static_cast<int32_t>(x.f[0]);
 	y.i[1] = static_cast<int32_t>(x.f[1]);
 	y.i[2] = static_cast<int32_t>(x.f[2]);
 	y.i[3] = static_cast<int32_t>(x.f[3]);
 	return y;
 #elif SIMD_HAS_SSE2
-	Vec4 y;
+	Xmm y;
 	y.r = _mm_cvtepi32_ps(_mm_castps_si128(x.r));
 	return y;
 #endif
@@ -168,10 +176,10 @@ inline Vec4 Vec4ConvertFloatToInt(const Vec4& x) {
 //---------------------------------------------------------------------
 
 // load 1 element from memory
-inline Vec4 Vec4LoadM1(const void *ptr) noexcept {
+inline Xmm XmmLoadM1(const void *ptr) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
-	Vec4 s;
+	Xmm s;
 	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
 	s.u[0] = source[0];
 	s.u[1] = 0;
@@ -179,17 +187,17 @@ inline Vec4 Vec4LoadM1(const void *ptr) noexcept {
 	s.u[3] = 0;
 	return s;
 #elif SIMD_HAS_SSE2
-	Vec4 s;
+	Xmm s;
 	s.r = _mm_load_ss(reinterpret_cast<const float*>(ptr));
 	return s;
 #endif
 }
 
 // load 2 elements from memory
-inline Vec4 Vec4LoadM2(const void *ptr) noexcept {
+inline Xmm XmmLoadM2(const void *ptr) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
-	Vec4 s;
+	Xmm s;
 	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
 	s.u[0] = source[0];
 	s.u[1] = source[1];
@@ -197,17 +205,17 @@ inline Vec4 Vec4LoadM2(const void *ptr) noexcept {
 	s.u[3] = 0;
 	return s;
 #elif SIMD_HAS_SSE2
-	Vec4 s;
+	Xmm s;
 	s.r = _mm_castpd_ps(_mm_load_sd(reinterpret_cast<const double*>(ptr)));
 	return s;
 #endif
 }
 
 // load 3 elements from memory
-inline Vec4 Vec4LoadM3(const void *ptr) noexcept {
+inline Xmm XmmLoadM3(const void *ptr) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
-	Vec4 s;
+	Xmm s;
 	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
 	s.u[0] = source[0];
 	s.u[1] = source[1];
@@ -215,7 +223,7 @@ inline Vec4 Vec4LoadM3(const void *ptr) noexcept {
 	s.u[3] = 0;
 	return s;
 #elif SIMD_HAS_SSE2
-	Vec4 s;
+	Xmm s;
 	const float *source = reinterpret_cast<const float*>(ptr);
 	__m128 xy = _mm_castpd_ps(_mm_load_sd(reinterpret_cast<const double*>(ptr)));
     __m128 z = _mm_load_ss(source + 2);
@@ -225,10 +233,10 @@ inline Vec4 Vec4LoadM3(const void *ptr) noexcept {
 }
 
 // load 4 elements from memory
-inline Vec4 Vec4LoadM4(const void *ptr) noexcept {
+inline Xmm XmmLoadM4(const void *ptr) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
-	Vec4 s;
+	Xmm s;
 	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
 	s.u[0] = source[0];
 	s.u[1] = source[1];
@@ -236,18 +244,18 @@ inline Vec4 Vec4LoadM4(const void *ptr) noexcept {
 	s.u[3] = source[3];
 	return s;
 #elif SIMD_HAS_AVX
-	Vec4 s;
+	Xmm s;
 	s.r = _mm_castsi128_ps(_mm_lddqu_si128(reinterpret_cast<const __m128i*>(ptr)));
 	return s;
 #elif SIMD_HAS_SSE2
-	Vec4 s;
+	Xmm s;
 	s.r = _mm_castsi128_ps(_mm_loadu_si128(reinterpret_cast<const __m128i*>(ptr)));
 	return s;
 #endif
 }
 
 // store 1 element to memory
-inline void Vec4StoreM1(void *ptr, const Vec4 &s) noexcept {
+inline void XmmStoreM1(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
 	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
@@ -258,7 +266,7 @@ inline void Vec4StoreM1(void *ptr, const Vec4 &s) noexcept {
 }
 
 // store 2 elements to memory
-inline void Vec4StoreM2(void *ptr, const Vec4 &s) noexcept {
+inline void XmmStoreM2(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
 	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
@@ -270,7 +278,7 @@ inline void Vec4StoreM2(void *ptr, const Vec4 &s) noexcept {
 }
 
 // store 3 elements to memory
-inline void Vec4StoreM3(void *ptr, const Vec4 &s) noexcept {
+inline void XmmStoreM3(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
 	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
@@ -287,7 +295,7 @@ inline void Vec4StoreM3(void *ptr, const Vec4 &s) noexcept {
 }
 
 // store 4 elements to memory
-inline void Vec4StoreM4(void *ptr, const Vec4 &s) noexcept {
+inline void XmmStoreM4(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
 	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
@@ -301,11 +309,11 @@ inline void Vec4StoreM4(void *ptr, const Vec4 &s) noexcept {
 }
 
 // load 2 elements from aligned memory
-inline Vec4 Vec4LoadA2(const void *ptr) noexcept {
+inline Xmm XmmLoadA2(const void *ptr) noexcept {
 	assert(ptr);
 	assert(CHECK_ALIGNMENT(ptr, 16));
 #if SIMD_HAS_NONE
-	Vec4 s;
+	Xmm s;
 	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
 	s.u[0] = source[0];
 	s.u[1] = source[1];
@@ -313,18 +321,18 @@ inline Vec4 Vec4LoadA2(const void *ptr) noexcept {
 	s.u[3] = 0;
 	return s;
 #elif SIMD_HAS_SSE2
-	Vec4 s;
+	Xmm s;
 	s.r = _mm_castpd_ps(_mm_load_sd(reinterpret_cast<const double*>(ptr)));
 	return s;
 #endif
 }
 
 // load 4 elements from aligned memory
-inline Vec4 Vec4LoadA4(const void *ptr) noexcept {
+inline Xmm XmmLoadA4(const void *ptr) noexcept {
 	assert(ptr);
 	assert(CHECK_ALIGNMENT(ptr, 16));
 #if SIMD_HAS_NONE
-	Vec4 s;
+	Xmm s;
 	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
 	s.u[0] = source[0];
 	s.u[1] = source[1];
@@ -332,7 +340,7 @@ inline Vec4 Vec4LoadA4(const void *ptr) noexcept {
 	s.u[3] = 0;
 	return s;
 #elif SIMD_HAS_SSE2
-	Vec4 s;
+	Xmm s;
 	__m128i V = _mm_load_si128(reinterpret_cast<const __m128i*>(ptr));
     s.r = _mm_castsi128_ps(V);
 	return s;
@@ -340,7 +348,7 @@ inline Vec4 Vec4LoadA4(const void *ptr) noexcept {
 }
 
 // store 2 elements to aligned memory
-inline void Vec4StoreA2(void *ptr, const Vec4 &s) noexcept {
+inline void XmmStoreA2(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 	assert(CHECK_ALIGNMENT(ptr, 16));
 #if SIMD_HAS_NONE
@@ -353,7 +361,7 @@ inline void Vec4StoreA2(void *ptr, const Vec4 &s) noexcept {
 }
 
 // store 4 elements to memory
-inline void Vec4StoreA4(void *ptr, const Vec4 &s) noexcept {
+inline void XmmStoreA4(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 	assert(CHECK_ALIGNMENT(ptr, 16));
 #if SIMD_HAS_NONE
@@ -371,27 +379,27 @@ inline void Vec4StoreA4(void *ptr, const Vec4 &s) noexcept {
 //---------------------------------------------------------------------
 // load/store raw int/float
 //---------------------------------------------------------------------
-inline Vec4 Vec4LoadInt1(const uint32_t *source) { return Vec4LoadM1(source); }
-inline Vec4 Vec4LoadFloat1(const float *source) { return Vec4LoadM1(source); }
-inline Vec4 Vec4LoadInt2(const uint32_t *source) { return Vec4LoadM2(source); }
-inline Vec4 Vec4LoadFloat2(const float *source) { return Vec4LoadM2(source); }
-inline Vec4 Vec4LoadInt3(const uint32_t *source) { return Vec4LoadM3(source); }
-inline Vec4 Vec4LoadFloat3(const float *source) { return Vec4LoadM3(source); }
-inline Vec4 Vec4LoadInt4(const uint32_t *source) { return Vec4LoadM4(source); }
-inline Vec4 Vec4LoadFloat4(const float *source) { return Vec4LoadM4(source); }
-inline Vec4 Vec4LoadInt4A(const uint32_t *source) { return Vec4LoadA4(source); }
-inline Vec4 Vec4LoadFloat4A(const float *source) { return Vec4LoadA4(source); }
+inline Xmm XmmLoadInt1(const uint32_t *source) { return XmmLoadM1(source); }
+inline Xmm XmmLoadFloat1(const float *source) { return XmmLoadM1(source); }
+inline Xmm XmmLoadInt2(const uint32_t *source) { return XmmLoadM2(source); }
+inline Xmm XmmLoadFloat2(const float *source) { return XmmLoadM2(source); }
+inline Xmm XmmLoadInt3(const uint32_t *source) { return XmmLoadM3(source); }
+inline Xmm XmmLoadFloat3(const float *source) { return XmmLoadM3(source); }
+inline Xmm XmmLoadInt4(const uint32_t *source) { return XmmLoadM4(source); }
+inline Xmm XmmLoadFloat4(const float *source) { return XmmLoadM4(source); }
+inline Xmm XmmLoadInt4A(const uint32_t *source) { return XmmLoadA4(source); }
+inline Xmm XmmLoadFloat4A(const float *source) { return XmmLoadA4(source); }
 
-inline void Vec4StoreInt1(uint32_t *dest, const Vec4& s) { Vec4StoreM1(dest, s); }
-inline void Vec4StoreFloat1(float *dest, const Vec4& s) { Vec4StoreM1(dest, s); }
-inline void Vec4StoreInt2(uint32_t *dest, const Vec4& s) { Vec4StoreM2(dest, s); }
-inline void Vec4StoreFloat2(float *dest, const Vec4& s) { Vec4StoreM2(dest, s); }
-inline void Vec4StoreInt3(uint32_t *dest, const Vec4& s) { Vec4StoreM3(dest, s); }
-inline void Vec4StoreFloat3(float *dest, const Vec4& s) { Vec4StoreM3(dest, s); }
-inline void Vec4StoreInt4(uint32_t *dest, const Vec4& s) { Vec4StoreM4(dest, s); }
-inline void Vec4StoreFloat4(float *dest, const Vec4& s) { Vec4StoreM4(dest, s); }
-inline void Vec4StoreInt4A(uint32_t *dest, const Vec4& s) { Vec4StoreA4(dest, s); }
-inline void Vec4StoreFloat4A(float *dest, const Vec4& s) { Vec4StoreA4(dest, s); }
+inline void XmmStoreInt1(uint32_t *dest, const Xmm& s) { XmmStoreM1(dest, s); }
+inline void XmmStoreFloat1(float *dest, const Xmm& s) { XmmStoreM1(dest, s); }
+inline void XmmStoreInt2(uint32_t *dest, const Xmm& s) { XmmStoreM2(dest, s); }
+inline void XmmStoreFloat2(float *dest, const Xmm& s) { XmmStoreM2(dest, s); }
+inline void XmmStoreInt3(uint32_t *dest, const Xmm& s) { XmmStoreM3(dest, s); }
+inline void XmmStoreFloat3(float *dest, const Xmm& s) { XmmStoreM3(dest, s); }
+inline void XmmStoreInt4(uint32_t *dest, const Xmm& s) { XmmStoreM4(dest, s); }
+inline void XmmStoreFloat4(float *dest, const Xmm& s) { XmmStoreM4(dest, s); }
+inline void XmmStoreInt4A(uint32_t *dest, const Xmm& s) { XmmStoreA4(dest, s); }
+inline void XmmStoreFloat4A(float *dest, const Xmm& s) { XmmStoreA4(dest, s); }
 
 
 
