@@ -113,7 +113,7 @@ NAMESPACE_BEGIN(SIMD);
 
 
 //---------------------------------------------------------------------
-// vector of 4 elements
+// SIMD register of 4-dimension vector
 //---------------------------------------------------------------------
 SIMD_ALIGNED_STRUCT(16) Xmm
 {
