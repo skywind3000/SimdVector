@@ -129,11 +129,28 @@ SIMD_ALIGNED_STRUCT(16) Xmm
 
 
 //---------------------------------------------------------------------
-// Consts
+// Convinent for Static Initialization
 //---------------------------------------------------------------------
-SIMD_ALIGNED_STRUCT(16) XmmU { union { uint32_t u[4]; Xmm v; }; };
-SIMD_ALIGNED_STRUCT(16) XmmI { union { int32_t u[4]; Xmm v; }; };
-SIMD_ALIGNED_STRUCT(16) XmmF { union { int32_t u[4]; Xmm v; }; };
+SIMD_ALIGNED_STRUCT(16) XmmU32 { union { uint32_t u[4]; Xmm x; }; };
+SIMD_ALIGNED_STRUCT(16) XmmI32 { union { int32_t u[4]; Xmm x; }; };
+SIMD_ALIGNED_STRUCT(16) XmmF32 { union { float u[4]; Xmm x; }; };
+
+
+//---------------------------------------------------------------------
+// Const Table
+//---------------------------------------------------------------------
+#ifndef CONST_WEEK
+#define CONST_WEEK extern const __declspec(selectany)
+#endif
+
+namespace Const {
+	CONST_WEEK XmmI32 AbsMask               = { { { 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF } } };
+
+	CONST_WEEK XmmF32 FixUnsigned           = { { { 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f } } };
+	CONST_WEEK XmmF32 MaxInt                = { { { 65536.0f*32768.0f - 128.0f, 65536.0f*32768.0f - 128.0f, 65536.0f*32768.0f - 128.0f, 65536.0f*32768.0f - 128.0f } } };
+	CONST_WEEK XmmF32 MaxUInt               = { { { 65536.0f*65536.0f - 256.0f, 65536.0f*65536.0f - 256.0f, 65536.0f*65536.0f - 256.0f, 65536.0f*65536.0f - 256.0f } } };
+	CONST_WEEK XmmF32 UnsignedFix           = { { { 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f, 32768.0f*65536.0f } } };
+};
 
 
 //---------------------------------------------------------------------
@@ -164,8 +181,12 @@ inline Xmm XmmConvertFloatToInt(const Xmm& x) {
 	y.i[3] = static_cast<int32_t>(x.f[3]);
 	return y;
 #elif SIMD_HAS_SSE2
+	__m128 vOverflow = _mm_cmpgt_ps(x.r, Const::MaxInt.x.r);
+	__m128i vResulti = _mm_cvttps_epi32(x.r);
+	__m128 vResult = _mm_and_ps(vOverflow, Const::AbsMask.x.r);
+	vOverflow = _mm_andnot_ps(vOverflow, _mm_castsi128_ps(vResulti));
 	Xmm y;
-	y.r = _mm_cvtepi32_ps(_mm_castps_si128(x.r));
+	y.r = _mm_or_ps(vOverflow, vResult);
 	return y;
 #endif
 }
@@ -226,7 +247,7 @@ inline Xmm XmmLoadM3(const void *ptr) noexcept {
 	Xmm s;
 	const float *source = reinterpret_cast<const float*>(ptr);
 	__m128 xy = _mm_castpd_ps(_mm_load_sd(reinterpret_cast<const double*>(ptr)));
-    __m128 z = _mm_load_ss(source + 2);
+	__m128 z = _mm_load_ss(source + 2);
 	s.r = _mm_movelh_ps(xy, z);
 	return s;
 #endif
@@ -287,10 +308,9 @@ inline void XmmStoreM3(void *ptr, const Xmm &s) noexcept {
 	dest[2] = s.u[2];
 #elif SIMD_HAS_SSE2
 	float *dest = reinterpret_cast<float*>(ptr);
-    _mm_store_sd(reinterpret_cast<double*>(ptr), _mm_castps_pd(s.r));
-	uint32_t mask = _MM_SHUFFLE(2, 2, 2, 2);
-    __m128 z = _mm_shuffle_ps(s.r, s.r, mask);
-    _mm_store_ss(reinterpret_cast<float*>(&dest[2]), z);
+	_mm_store_sd(reinterpret_cast<double*>(ptr), _mm_castps_pd(s.r));
+	__m128 z = _mm_shuffle_ps(s.r, s.r, _MM_SHUFFLE(2, 2, 2, 2));
+	_mm_store_ss(reinterpret_cast<float*>(&dest[2]), z);
 #endif
 }
 
@@ -342,7 +362,7 @@ inline Xmm XmmLoadA4(const void *ptr) noexcept {
 #elif SIMD_HAS_SSE2
 	Xmm s;
 	__m128i V = _mm_load_si128(reinterpret_cast<const __m128i*>(ptr));
-    s.r = _mm_castsi128_ps(V);
+	s.r = _mm_castsi128_ps(V);
 	return s;
 #endif
 }
