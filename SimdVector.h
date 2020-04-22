@@ -443,14 +443,12 @@ inline Xmm XmmConvertUIntToFloat(const Xmm& x) {
 	y.f[3] = static_cast<float>(x.u[3]);
 	return y;
 #elif SIMD_HAS_SSE2
-	__m128i v = _mm_castps_si128(x.r);
-	__m128 vMask = _mm_and_ps(_mm_castsi128_ps(v), Const::NegativeZero.x.r);
-	__m128 vResult = _mm_xor_ps(_mm_castsi128_ps(v), vMask);
+	__m128 vMask = _mm_and_ps(x.r, Const::NegativeZero.x.r);
+	__m128 vResult = _mm_xor_ps(x.r, vMask);
 	vResult = _mm_cvtepi32_ps(_mm_castps_si128(vResult));
 	__m128i iMask = _mm_srai_epi32(_mm_castps_si128(vMask), 31);
 	vMask = _mm_and_ps(_mm_castsi128_ps(iMask), Const::FixUnsigned.x.r);
-	vResult = _mm_and_ps(vResult, vMask);
-	// vResult = Const::NegativeZero.x.r;
+	vResult = _mm_add_ps(vResult, vMask);
 	Xmm y;
 	y.r = vResult;
 	return y;
