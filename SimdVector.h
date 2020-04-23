@@ -11,6 +11,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 #include <math.h>
 #include <assert.h>
 
@@ -223,8 +224,7 @@ inline Xmm XmmLoadM4(const void *ptr) noexcept {
 inline void XmmStoreM1(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
-	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
-	dest[0] = s.u[0];
+	memcpy(ptr, s.u, sizeof(uint32_t));
 #elif SIMD_HAS_SSE2
 	_mm_store_ss(reinterpret_cast<float*>(ptr), s.r);
 #endif
@@ -234,9 +234,7 @@ inline void XmmStoreM1(void *ptr, const Xmm &s) noexcept {
 inline void XmmStoreM2(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
-	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
-	dest[0] = s.u[0];
-	dest[1] = s.u[1];
+	memcpy(ptr, s.u, sizeof(uint32_t) * 2);
 #elif SIMD_HAS_SSE2
 	_mm_store_sd(reinterpret_cast<double*>(ptr), _mm_castps_pd(s.r));
 #endif
@@ -246,10 +244,7 @@ inline void XmmStoreM2(void *ptr, const Xmm &s) noexcept {
 inline void XmmStoreM3(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
-	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
-	dest[0] = s.u[0];
-	dest[1] = s.u[1];
-	dest[2] = s.u[2];
+	memcpy(ptr, s.u, sizeof(uint32_t) * 3);
 #elif SIMD_HAS_SSE2
 	float *dest = reinterpret_cast<float*>(ptr);
 	_mm_store_sd(reinterpret_cast<double*>(ptr), _mm_castps_pd(s.r));
@@ -262,12 +257,7 @@ inline void XmmStoreM3(void *ptr, const Xmm &s) noexcept {
 inline void XmmStoreM4(void *ptr, const Xmm &s) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
-	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
-	dest[0] = s.u[0];
-	dest[1] = s.u[1];
-	dest[2] = s.u[2];
-	dest[3] = s.u[3];
-	// printf("debug: %f %f %f %f\n", s.f[0], s.f[1], s.f[2], s.f[3]);
+	memcpy(ptr, s.u, sizeof(uint32_t) * 4);
 #elif SIMD_HAS_SSE2
 	_mm_storeu_si128(reinterpret_cast<__m128i*>(ptr), _mm_castps_si128(s.r));
 #endif
