@@ -146,8 +146,8 @@ inline Xmm XmmLoadM1(const void *ptr) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
 	Xmm s;
-	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
-	s.u[0] = source[0];
+	const uint8_t *source = reinterpret_cast<const uint8_t*>(ptr);
+	memcpy(s.u, source, sizeof(uint32_t) * 1);
 	s.u[1] = 0;
 	s.u[2] = 0;
 	s.u[3] = 0;
@@ -164,9 +164,8 @@ inline Xmm XmmLoadM2(const void *ptr) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
 	Xmm s;
-	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
-	s.u[0] = source[0];
-	s.u[1] = source[1];
+	const uint8_t *source = reinterpret_cast<const uint8_t*>(ptr);
+	memcpy(s.u, source, sizeof(uint32_t) * 2);
 	s.u[2] = 0;
 	s.u[3] = 0;
 	return s;
@@ -182,10 +181,8 @@ inline Xmm XmmLoadM3(const void *ptr) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
 	Xmm s;
-	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
-	s.u[0] = source[0];
-	s.u[1] = source[1];
-	s.u[2] = source[2];
+	const uint8_t *source = reinterpret_cast<const uint8_t*>(ptr);
+	memcpy(s.u, source, sizeof(uint32_t) * 3);
 	s.u[3] = 0;
 	return s;
 #elif SIMD_HAS_SSE2
@@ -203,11 +200,8 @@ inline Xmm XmmLoadM4(const void *ptr) noexcept {
 	assert(ptr);
 #if SIMD_HAS_NONE
 	Xmm s;
-	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
-	s.u[0] = source[0];
-	s.u[1] = source[1];
-	s.u[2] = source[2];
-	s.u[3] = source[3];
+	const uint8_t *source = reinterpret_cast<const uint8_t*>(ptr);
+	memcpy(s.u, source, sizeof(uint32_t) * 4);
 	return s;
 #elif SIMD_HAS_AVX
 	Xmm s;
@@ -269,9 +263,8 @@ inline Xmm XmmLoadA2(const void *ptr) noexcept {
 	assert(CHECK_ALIGNMENT(ptr, 16));
 #if SIMD_HAS_NONE
 	Xmm s;
-	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
-	s.u[0] = source[0];
-	s.u[1] = source[1];
+	const uint8_t *source = reinterpret_cast<const uint8_t*>(ptr);
+	memcpy(s.u, source, sizeof(uint32_t) * 2);
 	s.u[2] = 0;
 	s.u[3] = 0;
 	return s;
@@ -288,11 +281,8 @@ inline Xmm XmmLoadA4(const void *ptr) noexcept {
 	assert(CHECK_ALIGNMENT(ptr, 16));
 #if SIMD_HAS_NONE
 	Xmm s;
-	const uint32_t *source = reinterpret_cast<const uint32_t*>(ptr);
-	s.u[0] = source[0];
-	s.u[1] = source[1];
-	s.u[2] = 0;
-	s.u[3] = 0;
+	const uint8_t *source = reinterpret_cast<const uint8_t*>(ptr);
+	memcpy(s.u, source, sizeof(uint32_t) * 4);
 	return s;
 #elif SIMD_HAS_SSE2
 	Xmm s;
@@ -308,8 +298,7 @@ inline void XmmStoreA2(void *ptr, const Xmm &s) noexcept {
 	assert(CHECK_ALIGNMENT(ptr, 16));
 #if SIMD_HAS_NONE
 	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
-	dest[0] = s.u[0];
-	dest[1] = s.u[1];
+	memcpy(dest, s.u, sizeof(uint32_t) * 2);
 #elif SIMD_HAS_SSE2
 	_mm_store_sd(reinterpret_cast<double*>(ptr), _mm_castps_pd(s.r));
 #endif
@@ -321,10 +310,7 @@ inline void XmmStoreA4(void *ptr, const Xmm &s) noexcept {
 	assert(CHECK_ALIGNMENT(ptr, 16));
 #if SIMD_HAS_NONE
 	uint32_t *dest = reinterpret_cast<uint32_t*>(ptr);
-	dest[0] = s.u[0];
-	dest[1] = s.u[1];
-	dest[2] = s.u[2];
-	dest[3] = s.u[3];
+	memcpy(dest, s.u, sizeof(uint32_t) * 4);
 #elif SIMD_HAS_SSE2
 	_mm_store_si128(reinterpret_cast<__m128i*>(ptr), _mm_castps_si128(s.r));
 #endif
@@ -466,6 +452,57 @@ inline Xmm XmmConvertFloatToUInt(const Xmm& x) {
 	Xmm y;
 	y.r = _mm_or_ps(vResult, vOverflow);
 	return y;
+#endif
+}
+
+
+//---------------------------------------------------------------------
+// General Vector
+//---------------------------------------------------------------------
+static inline Xmm XmmVectorZero() {
+#if SIMD_HAS_NONE
+	Xmm x = { { { 0.0f, 0.0f, 0.0f, 0.0f } } };
+	return x;
+#elif SIMD_HAS_SSE2
+	Xmm x;
+	x.r = _mm_setzero_ps();
+	return x;
+#endif
+}
+
+static inline Xmm XmmVectorSet(float x, float y, float z, float w) {
+#if SIMD_HAS_NONE
+	Xmm m = { { { x, y, z, w } } };
+	return m;
+#elif SIMD_HAS_SSE2
+	Xmm m;
+	m.r = _mm_set_ps(x, y, z, w);
+	return m;
+#endif
+}
+
+static inline Xmm XmmVectorSetInt(uint32_t x, uint32_t y, uint32_t z, uint32_t w) {
+#if SIMD_HAS_NONE
+	XmmU32 m = {{{ x, y, z, w }}};
+	return m.x;
+#elif SIMD_HAS_SSE2
+	__m128i v = _mm_set_epi32(w, z, y, x);
+	Xmm m;
+	m.v = v;
+	return m;
+#endif
+}
+
+static inline Xmm XmmVectorReplicate(float value)
+{
+#if SIMD_HAS_NONE
+	Xmm x;
+	x.f[0] = x.f[1] = x.f[2] = x.f[3] = value;
+	return x;
+#elif SIMD_HAS_SSE2
+	Xmm x;
+	x.r = _mm_set_ps1(value);
+	return x;
 #endif
 }
 
