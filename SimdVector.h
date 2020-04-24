@@ -369,7 +369,7 @@ namespace Const {
 	CONST_WEEK XmmU32 MaskW                 = { { { 0x00000000, 0x00000000, 0x00000000, 0xFFFFFFFF } } };
 
 	CONST_WEEK XmmI32 AbsMask               = { { { 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF, 0x7FFFFFFF } } };
-};
+}
 
 
 //---------------------------------------------------------------------
@@ -488,7 +488,7 @@ static inline Xmm XmmVectorSetInt(uint32_t x, uint32_t y, uint32_t z, uint32_t w
 #elif SIMD_HAS_SSE2
 	__m128i v = _mm_set_epi32(w, z, y, x);
 	Xmm m;
-	m.v = v;
+	m.r = _mm_castsi128_ps(v);
 	return m;
 #endif
 }
@@ -505,6 +505,87 @@ static inline Xmm XmmVectorReplicate(float value)
 	return x;
 #endif
 }
+
+static inline Xmm XmmVectorReplicatePtr(const float *pv)
+{
+#if SIMD_HAS_NONE
+	Xmm x;
+	float value = pv[0];
+	x.f[0] = x.f[1] = x.f[2] = x.f[3] = value;
+	return x;
+#elif SIMD_HAS_SSE2
+	Xmm x;
+	x.r = _mm_load_ps1(pv);
+	return x;
+#endif
+}
+
+static inline Xmm XmmVectorReplicateInt(uint32_t value)
+{
+#if SIMD_HAS_NONE
+	Xmm x;
+	x.u[0] = x.u[1] = x.u[2] = x.u[3] = value;
+	return x;
+#elif SIMD_HAS_SSE2
+	Xmm x;
+	__m128i v = _mm_set1_epi32(value);
+	x.r = _mm_castsi128_ps(v);
+	return x;
+#endif
+}
+
+static inline Xmm XmmVectorReplicateIntPtr(const uint32_t *pv)
+{
+#if SIMD_HAS_NONE
+	Xmm x;
+	uint32_t value = pv[0];
+	x.u[0] = x.u[1] = x.u[2] = x.u[3] = value;
+	return x;
+#elif SIMD_HAS_SSE2
+	Xmm x;
+	x.r = _mm_load_ps1(reinterpret_cast<const float*>(pv));
+	return x;
+#endif
+}
+
+static inline Xmm XmmVectorTrueInt()
+{
+#if SIMD_HAS_NONE
+	XmmU32 uu = {{{ 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU }}};
+	return uu.x;
+#elif SIMD_HAS_SSE2
+	__m128i v = _mm_set1_epi32(-1);
+	Xmm x;
+	x.r = _mm_castsi128_ps(v);
+	return x;
+#endif
+}
+
+static inline Xmm XmmVectorFalseInt()
+{
+#if SIMD_HAS_NONE
+	XmmF32 ff = {{{ 0.0f, 0.0f, 0.0f, 0.0f }}};
+	return ff.x;
+#elif SIMD_HAS_SSE2
+	Xmm x;
+	x.r = _mm_setzero_ps();
+	return x;
+#endif
+}
+
+static inline Xmm XmmVectorSplateX(const Xmm& m)
+{
+#if SIMD_HAS_NONE
+	Xmm n;
+	n.f[0] = n.f[1] = n.f[2] = n.f[3] = m.f[0];
+	return n;
+#elif SIMD_HAS_SSE2
+	Xmm n;
+	n.r = _mm_shuffle_ps(m.r, m.r, _MM_SHUFFLE(0, 0, 0, 0));
+	return n;
+#endif
+}
+
 
 
 //---------------------------------------------------------------------
